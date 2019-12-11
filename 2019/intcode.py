@@ -1,6 +1,6 @@
 from collections import UserList
-from queue import Queue
-
+from queue import Queue, Empty
+from threading import Thread
 
 class Memory(UserList):
     def __init__(self, iterable):
@@ -38,12 +38,15 @@ assert _test_mem[:5] == [1, 2, 3, 0, 0]
 assert _test_mem[0:2] == [1, 2]
 
 
-class Intcode:
+class Intcode(Thread):
     @staticmethod
     def parse_program(program: str):
         return [int(x) for x in program.split(",")]
 
     def __init__(self, program):
+        super().__init__()
+        self.daemon = True
+
         self.memory = []
         self.nonstdin = Queue()
         self.nonstdout = Queue()
@@ -74,7 +77,20 @@ class Intcode:
             99: (lambda: self._end(), "eof", 0, 0),
         }
 
-    def run(self, *inputs):
+        self.done = Queue(1)
+        self.done.put(True)
+        self.start()
+
+    def run(self):
+        self.done.get()
+
+        self.running = True
+        self._run()
+        self.running = False
+
+        self.done.task_done()
+
+    def put(self, *inputs):
         if len(inputs) == 1 and type(inputs[0]) == list:
             # can pass in list
             [self.nonstdin.put(n) for n in inputs[0] if type(n) == int]
@@ -82,15 +98,18 @@ class Intcode:
             # or a lot of nums
             [self.nonstdin.put(n) for n in inputs if type(n) == int]
 
-        self.running = True
-        self._run()
-        self.running = False
+    def wait_for_result(self):
+        self.done.join()
 
         result = []
-        while self.nonstdout.qsize():
-            result.append(self.nonstdout.get())
+        try:
+            while True:
+                result.append(self.nonstdout.get(block=False))
+        except:
+            Empty
 
         return result
+
 
     def _read_code(self, ip: int):
         val = self.memory[ip]
@@ -176,27 +195,27 @@ class Intcode:
         self.running = False
 
 
-def prog_test(input_prog, input_data=[]):
+def prog_test(input_prog, input_data=[], expected=[]):
     machine = Intcode(input_prog)
-    return machine.run(input_data)
+    machine.put(input_data)
+    result = machine.wait_for_result()
+    assert result == expected, f"Got {result}; expected {expected}"
 
+# TODO: make a test suite
 
-assert prog_test("3,9,8,9,10,9,4,9,99,-1,8", [8]) == [1]  # eq8
-assert prog_test("3,9,7,9,10,9,4,9,99,-1,8", [7]) == [1]  # lt8
-assert prog_test("3,3,1108,-1,8,3,4,3,99", [8]) == [1]  # eq8
-assert prog_test("3,3,1107,-1,8,3,4,3,99", [7]) == [1]  # lt8
-assert prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [1]) == [1]
-assert prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [0]) == [0]
-assert prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [1]) == [1]
-assert prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [0]) == [0]
+# prog_test("3,9,8,9,10,9,4,9,99,-1,8", [8], [1])  # eq8
+# prog_test("3,9,7,9,10,9,4,9,99,-1,8", [7], [1])  # lt8
+# prog_test("3,3,1108,-1,8,3,4,3,99", [8], [1])  # eq8
+# prog_test("3,3,1107,-1,8,3,4,3,99", [7], [1])  # lt8
+# prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [1], [1])
+# prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [0], [0])
+# prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [1], [1])
+# prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [0], [0])
 
-test_data = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
-test_res = prog_test(test_data)
-assert test_res == Intcode.parse_program(test_data), test_res
+# test_data = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
+# prog_test(test_data, [], Intcode.parse_program(test_data))
 
-test_res_1 = prog_test("1102,34915192,34915192,7,4,7,99,0")
-assert len(str(test_res_1[0])) == 16, test_res_1
+# prog_test("1102,34915192,34915192,7,4,7,99,0", [], [1219070632396864])
 
-test_data_2 = "104,1125899906842624,99"
-test_res_2 = prog_test(test_data_2)
-assert test_res_2[0] == int(test_data_2.split(",")[1]), test_res_2[0]
+# test_data_2 = "104,1125899906842624,99"
+# prog_test(test_data_2, [], [int(test_data_2.split(",")[1])])
