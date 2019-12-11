@@ -98,6 +98,9 @@ class Intcode(Thread):
             # or a lot of nums
             [self.nonstdin.put(n) for n in inputs if type(n) == int]
 
+    def get(self):
+        return self.nonstdout.get()
+
     def wait_for_result(self):
         self.done.join()
 
