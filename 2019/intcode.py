@@ -1,6 +1,8 @@
 from collections import UserList
 from queue import Queue, Empty
 from threading import Thread
+import unittest
+
 
 class Memory(UserList):
     def __init__(self, iterable):
@@ -113,7 +115,6 @@ class Intcode(Thread):
 
         return result
 
-
     def _read_code(self, ip: int):
         val = self.memory[ip]
         if val < 100:
@@ -198,27 +199,92 @@ class Intcode(Thread):
         self.running = False
 
 
-def prog_test(input_prog, input_data=[], expected=[]):
-    machine = Intcode(input_prog)
-    machine.put(input_data)
-    result = machine.wait_for_result()
-    assert result == expected, f"Got {result}; expected {expected}"
+class test_correctness(unittest.TestCase):
+    def prog_test(self, input_prog, expected=[], input_data=[]):
+        machine = Intcode(input_prog)
+        machine.put(input_data)
+        result = machine.wait_for_result()
+        self.assertSequenceEqual(result, expected)
 
-# TODO: make a test suite
+    def test_1(self):
+        self.prog_test(
+            "99",
+            [], []
+        )
 
-# prog_test("3,9,8,9,10,9,4,9,99,-1,8", [8], [1])  # eq8
-# prog_test("3,9,7,9,10,9,4,9,99,-1,8", [7], [1])  # lt8
-# prog_test("3,3,1108,-1,8,3,4,3,99", [8], [1])  # eq8
-# prog_test("3,3,1107,-1,8,3,4,3,99", [7], [1])  # lt8
-# prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [1], [1])
-# prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [0], [0])
-# prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [1], [1])
-# prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [0], [0])
+    def test_2(self):
+        self.prog_test(
+            "3,9,8,9,10,9,4,9,99,-1,8",
+            [1], [8]
+        )  # eq8
 
-# test_data = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
-# prog_test(test_data, [], Intcode.parse_program(test_data))
+    def test_3(self):
+        self.prog_test(
+            "3,9,7,9,10,9,4,9,99,-1,8",
+            [1], [7]
+        )  # lt8
 
-# prog_test("1102,34915192,34915192,7,4,7,99,0", [], [1219070632396864])
+    def test_4(self):
+        self.prog_test(
+            "3,3,1108,-1,8,3,4,3,99",
+            [1], [8]
+        )  # eq8
 
-# test_data_2 = "104,1125899906842624,99"
-# prog_test(test_data_2, [], [int(test_data_2.split(",")[1])])
+    def test_5(self):
+        self.prog_test(
+            "3,3,1107,-1,8,3,4,3,99",
+            [1], [7]
+        )  # lt8
+
+    def test_6(self):
+        self.prog_test(
+            "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9",
+            [1], [1]
+        )
+
+    def test_7(self):
+        self.prog_test(
+            "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9",
+            [0], [0]
+        )
+
+    def test_8(self):
+        self.prog_test(
+            "3,3,1105,-1,9,1101,0,0,12,4,12,99,1",
+            [1], [1]
+        )
+
+    def test_9(self):
+        self.prog_test(
+            "3,3,1105,-1,9,1101,0,0,12,4,12,99,1",
+            [0], [0]
+        )
+
+    def test_10(self):
+        test_data = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
+        self.prog_test(test_data, Intcode.parse_program(test_data))
+
+    def test_11(self):
+        self.prog_test("1102,34915192,34915192,7,4,7,99,0", [1219070632396864])
+
+    def test_12(self):
+        test_data_2 = "104,1125899906842624,99"
+        self.prog_test(test_data_2, [int(test_data_2.split(",")[1])])
+
+
+def run_test(test_case):
+    case = unittest.TestLoader().loadTestsFromTestCase(test_case)
+    result = unittest.TestResult()
+    case(result)
+    if result.wasSuccessful():
+        return True
+    else:
+        print("Some tests failed!")
+        for test, err in result.failures + result.errors:
+            print(test)
+            print(err)
+        return False
+
+
+def test():
+    run_test(test_correctness)
