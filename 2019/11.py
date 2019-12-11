@@ -1,6 +1,5 @@
 from intcode import Intcode
 from collections import defaultdict
-import numpy as np
 
 with open("input11") as fr:
     task_data = fr.read().strip()
@@ -41,7 +40,7 @@ def part1():
     return len(list(panels.keys()))
 
 
-def paint_a_picture(data: dict):
+def get_a_picture(data: dict):
     positions = list(data.keys())
     def real_part(z): return z.real
     def imag_part(z): return z.imag
@@ -65,15 +64,13 @@ def paint_a_picture(data: dict):
             wut[row][column] = fixed[addr]
     wut.reverse()
 
-    with open("outpu11", "w") as fw:
-        prettied = ["".join([" " if x == 0 else "#" for x in line]) + "\n" for line in wut]
-        fw.writelines(prettied)
+    prettied = "\n".join(["".join([" " if x == 0 else "#" for x in line]) for line in wut])
 
-    return wut
+    return prettied
 
 
 def part2():
     start = defaultdict(int)
     start[complex(0, 0)] = WHITE
     panels = run_robot(start)
-    return paint_a_picture(panels)
+    print(get_a_picture(panels))
