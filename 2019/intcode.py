@@ -37,6 +37,9 @@ class ChillError(Exception):
 
 
 class Intcode(Thread):
+    '''Creates a 2019 AoC Intcode machine, initialized with a program.
+    Program can be either a list of ints or a string.'''
+
     @staticmethod
     def parse_program(program: str):
         return [int(x) for x in program.split(",")]
@@ -81,15 +84,16 @@ class Intcode(Thread):
         self.start()
 
     def run(self):
+        "Thread overload."
         self.done.get()
 
         self.running = True
         self._run()
-        self.running = False
 
         self.done.task_done()
 
     def put(self, *inputs):
+        "Pipe in inputs into the machine."
         if len(inputs) == 1 and type(inputs[0]) == list:
             # can pass in list
             [self.nonstdin.put(n) for n in inputs[0] if type(n) == int]
@@ -98,9 +102,12 @@ class Intcode(Thread):
             [self.nonstdin.put(n) for n in inputs if type(n) == int]
 
     def get(self):
+        "Read outputs from machine. Blocking."
         return self.nonstdout.get()
 
     def wait_for_result(self):
+        '''Function returns when the machine stops.
+        Returns what's gathered in the output pipe.'''
         self.done.join()
 
         result = []
@@ -133,10 +140,11 @@ class Intcode(Thread):
         return op_code, params
 
     def _put_char(self, ch):
+        "Writes thingy on \"stdout\""
         self.nonstdout.put(ch)
 
-    def _get_char(self, ):
-        "Blocking"
+    def _get_char(self):
+        "Read thingy from \"stdin\". Blocking."
         return self.nonstdin.get()
 
     def _save_at(self, val, r):
@@ -175,9 +183,14 @@ class Intcode(Thread):
     def _modify_rb(self, rb_change):
         self.rb += rb_change
 
+    def _progress(self, op_argc):
+        if not self.ip_dirty:
+            self.ip += op_argc + 1
+        self.ip_dirty = False
+
     def _run(self):
         try:
-            while self.ip < len(self.memory) and self.running:
+            while self.running:
                 op_code, params = self._op_at_ip()
                 op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(
                     op_code)
@@ -189,9 +202,8 @@ class Intcode(Thread):
                 ptrs_deref = self._deref(pointers, params[ptrs_start:], True)
                 op_fun(*args_deref, *ptrs_deref)
 
-                if not self.ip_dirty:
-                    self.ip += op_argc + 1
-                self.ip_dirty = False
+                self._progress(op_argc)
+
         except ChillError as e:
             self._end(e)
         except AssertionError as e:
