@@ -32,17 +32,9 @@ class Memory(UserList):
         return UserList.__setitem__(self, *args, **kwargs)
 
 
-_test_mem = Memory([1, 2, 3])
-assert _test_mem[2] == 3
-assert _test_mem[3] == 0
-_test_mem[2**64] = 42
-assert len(_test_mem) == 3  # sucks but yeah
-assert _test_mem[2**64] == 42
-assert _test_mem[:5] == [1, 2, 3, 0, 0]
-assert _test_mem[0:2] == [1, 2]
-
 class ChillError(Exception):
     pass
+
 
 class Intcode(Thread):
     @staticmethod
@@ -187,7 +179,8 @@ class Intcode(Thread):
         try:
             while self.ip < len(self.memory) and self.running:
                 op_code, params = self._op_at_ip()
-                op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(op_code)
+                op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(
+                    op_code)
                 mem_slice = self.memory[self.ip+1:self.ip+op_argc+1]
                 ptrs_start = op_argc-op_ptrs
                 arguments = mem_slice[:ptrs_start]
@@ -205,25 +198,26 @@ class Intcode(Thread):
             self._end(e)
         except Exception as e:
             try:
-                _,_,trace = sys.exc_info()
+                _, _, trace = sys.exc_info()
                 self._end(f"Unexpected error at line {trace.tb_lineno} : {e}")
             except Exception:
                 self._end("You goofed up, mate.")
                 print(traceback.format_exc())
 
-    def _end(self, msg = None):
+    def _end(self, msg=None):
         self.running = False
         self.status = "Finished."
         if msg:
             self.status = msg
 
 
-class test_correctness(unittest.TestCase):
+class _test_intcode(unittest.TestCase):
     def prog_test(self, input_prog, expected=[], input_data=[]):
         machine = Intcode(input_prog)
         machine.put(input_data)
         result = machine.wait_for_result()
-        self.assertSequenceEqual(result, expected, f"Possible error: {machine.status}")
+        self.assertSequenceEqual(
+            result, expected, f"Possible error: {machine.status}")
 
     def test_1(self):
         self.prog_test(
@@ -291,7 +285,23 @@ class test_correctness(unittest.TestCase):
         self.prog_test(test_data_2, [int(test_data_2.split(",")[1])])
 
 
-def run_test(test_case):
+class _test_memory(unittest.TestCase):
+    def setUp(self):
+        self.test_mem = Memory([1, 2, 3])
+
+    def test_reads(self):
+        self.assertEqual(self.test_mem[2], 3)
+        self.assertEqual(self.test_mem[3], 0)
+        self.assertSequenceEqual(self.test_mem[:5], [1, 2, 3, 0, 0])
+        self.assertSequenceEqual(self.test_mem[0:2], [1, 2])
+
+    def test_writes(self):
+        self.test_mem[2**64] = 42
+        self.assertEqual(len(self.test_mem), 3)  # sucks but yeah
+        self.assertEqual(self.test_mem[2**64], 42)
+
+
+def _run_test_class(test_case):
     case = unittest.TestLoader().loadTestsFromTestCase(test_case)
     result = unittest.TestResult()
     case(result)
@@ -305,5 +315,6 @@ def run_test(test_case):
         return False
 
 
-def test():
-    run_test(test_correctness)
+def test_module():
+    _run_test_class(_test_intcode)
+    _run_test_class(_test_memory)
