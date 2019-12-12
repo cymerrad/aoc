@@ -185,8 +185,6 @@ def get_all_lines_of_sight(m: list, pos_x: int, pos_y: int):
 
     lines = {}
 
-    # TODO make them sorted
-
     # in quadrants
     for dx in [1, -1]:
         for dy in [-1, 1]:
