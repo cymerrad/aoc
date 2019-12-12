@@ -126,13 +126,7 @@ class Intcode(Thread):
         return (op_c, tuple([int(x) for x in op_pars]))
 
     def _get_op_with_code(self, code: int):
-        try:
-            return self.ops[code]
-        except KeyError:
-            if code == 99:
-                raise ProgramEnd
-            else:
-                raise
+        return self.ops[code]
 
     def _put_char(self, ch):
         self.nonstdout.put(ch)
