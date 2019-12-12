@@ -143,9 +143,9 @@ test_data_4 = '''.#..##.###...#######
 test_ans_4 = (11, 13, 210)
 
 def check_for_rounding_errors():
-    for p,q in permutations([1,2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21], 2):
+    for p,q in permutations(range(1,100), 2):
         if np.gcd(p,q) == 1:
-            for mult in range(2,8):
+            for mult in range(2,10):
                 for x, y in [(p,q), (-p,q), (p,-q), (-p,-q)]:
                     source = complex(x, y)
                     source_ang = angle(source)

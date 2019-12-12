@@ -79,18 +79,18 @@ class Intcode(Thread):
             99: (lambda: self._end(), "eof", 0, 0),
         }
 
-        self.done = Queue(1)
-        self.done.put(True)
+        self._done = Queue(1)
+        self._done.put(True)
         self.start()
 
     def run(self):
         "Thread overload."
-        self.done.get()
+        self._done.get()
 
         self.running = True
         self._run()
 
-        self.done.task_done()
+        self._done.task_done()
 
     def put(self, *inputs):
         "Pipe in inputs into the machine."
@@ -108,7 +108,7 @@ class Intcode(Thread):
     def wait_for_result(self):
         '''Function returns when the machine stops.
         Returns what's gathered in the output pipe.'''
-        self.done.join()
+        self._done.join()
 
         result = []
         try:
