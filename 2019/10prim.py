@@ -1,21 +1,20 @@
 import numpy as np
+from itertools import permutations, cycle
 
 def angle(z: complex):
     # calculating angle from OY+, clockwise
-    ang_OX = np.angle(z, deg=True)
-    i_seriously_fitted_the_transformation_to_data = ang_OX + 90.0
-    return np.fmod(i_seriously_fitted_the_transformation_to_data + 360.0, 360.0)
+    return np.fmod(np.angle(z, deg=True) + 450.0, 360.0)
 
 def order_by_argument_then_modulus(z: complex):
     return (angle(z), abs(z))
 
-def order_in_spiral(central_asteroid: complex, asteroids: list):
-    asteroid_diffs = [asteroid - central_asteroid for asteroid in asteroids if asteroid != central_asteroid]
+def order_in_spiral(central_asteroid: complex, asteroids: list) -> (list, dict):
+    asteroid_vectors = [asteroid - central_asteroid for asteroid in asteroids if asteroid != central_asteroid]
 
-    asteroid_diffs.sort(key=order_by_argument_then_modulus)
+    asteroid_vectors.sort(key=order_by_argument_then_modulus)
     strates = dict()
     arguments_ordered = []
-    for asteroid in asteroid_diffs:
+    for asteroid in asteroid_vectors:
         ang = angle(asteroid)
         try:
             strates[ang].append(asteroid)
@@ -53,14 +52,15 @@ def part2(data: str):
     counter, goal, result = 0, 200, 0j
     central_asteroid = complex(best[0], best[1])
     arguments_ord, strates = order_in_spiral(central_asteroid, asteroids)
-    for asimuth in arguments_ord:
+    for asimuth in cycle(arguments_ord):
         try:
             in_sight = strates[asimuth]
             result, in_sight = in_sight[0], in_sight[1:]
             strates[asimuth] = in_sight
             counter += 1
             if counter == goal:
-                return (result.real, result.imag)
+                goalth = result + central_asteroid
+                return (int(goalth.real), int(goalth.imag))
         except IndexError:
             continue
     else:
@@ -142,15 +142,27 @@ test_data_4 = '''.#..##.###...#######
 '''
 test_ans_4 = (11, 13, 210)
 
+def check_for_rounding_errors():
+    for p,q in permutations([1,2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21], 2):
+        if np.gcd(p,q) == 1:
+            for mult in range(2,8):
+                for x, y in [(p,q), (-p,q), (p,-q), (-p,-q)]:
+                    source = complex(x, y)
+                    source_ang = angle(source)
+                    assert source_ang == angle(mult * source), f"{source} -> {mult * source}"
 
-# t_data = [x for x in locals().items() if x[0].startswith("test_data")]
-# t_anss = [x for x in locals().items() if x[0].startswith("test_ans")]
-# t_data.sort(key=lambda x: x[0])
-# t_anss.sort(key=lambda x: x[0])
+def check_correctness_part1():
+    t_data = [x for x in globals().items() if x[0].startswith("test_data")]
+    t_anss = [x for x in globals().items() if x[0].startswith("test_ans")]
+    t_data.sort(key=lambda x: x[0])
+    t_anss.sort(key=lambda x: x[0])
 
-# for t_d, t_a in zip(t_data, t_anss):
-#     res = part1(t_d[1])
-#     assert res == t_a[1], f"Calcumalated {res} != expected {t_a[1]} for {t_d[0]}"
+    for t_d, t_a in zip(t_data, t_anss):
+        res = part1(t_d[1])
+        assert res == t_a[1], f"Calcumalated {res} != expected {t_a[1]} for {t_d[0]}"
 
-# assert part1(task_data) == (26,36,347)
-assert part2(task_data) == (8,29)
+    assert part1(task_data) == (26,36,347)
+
+def check_correctness_part2():
+    result = part2(task_data)
+    assert result == (8,29), f"Got {result}"
