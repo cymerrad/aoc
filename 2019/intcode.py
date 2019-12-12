@@ -1,7 +1,9 @@
+import traceback
+import sys
+import unittest
 from collections import UserList
 from queue import Queue, Empty
 from threading import Thread
-import unittest
 
 
 class Memory(UserList):
@@ -39,6 +41,8 @@ assert _test_mem[2**64] == 42
 assert _test_mem[:5] == [1, 2, 3, 0, 0]
 assert _test_mem[0:2] == [1, 2]
 
+class ChillError(Exception):
+    pass
 
 class Intcode(Thread):
     @staticmethod
@@ -65,6 +69,7 @@ class Intcode(Thread):
         self.ip_dirty = False  # did we jump?
         self.rb = 0  # relative base
         self.running = False
+        self.status = "Operational."
 
         self.ops = {
             1: (lambda a, b, r: self._save_at(a + b, r), "add", 3, 1),
@@ -115,8 +120,7 @@ class Intcode(Thread):
 
         return result
 
-    def _read_code(self, ip: int):
-        val = self.memory[ip]
+    def _read_params(self, val: int):
         if val < 100:
             return (val, (0, 0, 0))
         full = "{:05d}".format(val)
@@ -126,7 +130,15 @@ class Intcode(Thread):
         return (op_c, tuple([int(x) for x in op_pars]))
 
     def _get_op_with_code(self, code: int):
-        return self.ops[code]
+        try:
+            return self.ops[code]
+        except KeyError:
+            raise ChillError(f"Invalid code encountered at {self.ip}")
+
+    def _op_at_ip(self):
+        pre_op = self._read_at(self.ip)
+        op_code, params = self._read_params(pre_op)
+        return op_code, params
 
     def _put_char(self, ch):
         self.nonstdout.put(ch)
@@ -172,25 +184,38 @@ class Intcode(Thread):
         self.rb += rb_change
 
     def _run(self):
-        while self.ip < len(self.memory) and self.running:
-            pre_op = self._read_at(self.ip)
-            op_code, params = self._read_code(
-                self.ip)  # TODO: explicit self.ip
-            op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(op_code)
-            mem_slice = self.memory[self.ip+1:self.ip+op_argc+1]
-            ptrs_start = op_argc-op_ptrs
-            arguments = mem_slice[:ptrs_start]
-            pointers = mem_slice[ptrs_start:]
-            args_deref = self._deref(arguments, params)
-            ptrs_deref = self._deref(pointers, params[ptrs_start:], True)
-            op_fun(*args_deref, *ptrs_deref)
+        try:
+            while self.ip < len(self.memory) and self.running:
+                op_code, params = self._op_at_ip()
+                op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(op_code)
+                mem_slice = self.memory[self.ip+1:self.ip+op_argc+1]
+                ptrs_start = op_argc-op_ptrs
+                arguments = mem_slice[:ptrs_start]
+                pointers = mem_slice[ptrs_start:]
+                args_deref = self._deref(arguments, params)
+                ptrs_deref = self._deref(pointers, params[ptrs_start:], True)
+                op_fun(*args_deref, *ptrs_deref)
 
-            if not self.ip_dirty:
-                self.ip += op_argc + 1
-            self.ip_dirty = False
+                if not self.ip_dirty:
+                    self.ip += op_argc + 1
+                self.ip_dirty = False
+        except ChillError as e:
+            self._end(e)
+        except AssertionError as e:
+            self._end(e)
+        except Exception as e:
+            try:
+                _,_,trace = sys.exc_info()
+                self._end(f"Unexpected error at line {trace.tb_lineno} : {e}")
+            except Exception:
+                self._end("You goofed up, mate.")
+                print(traceback.format_exc())
 
-    def _end(self):
+    def _end(self, msg = None):
         self.running = False
+        self.status = "Finished."
+        if msg:
+            self.status = msg
 
 
 class test_correctness(unittest.TestCase):
@@ -198,7 +223,7 @@ class test_correctness(unittest.TestCase):
         machine = Intcode(input_prog)
         machine.put(input_data)
         result = machine.wait_for_result()
-        self.assertSequenceEqual(result, expected)
+        self.assertSequenceEqual(result, expected, f"Possible error: {machine.status}")
 
     def test_1(self):
         self.prog_test(
