@@ -96,10 +96,10 @@ class Intcode(Thread):
         "Pipe in inputs into the machine."
         if len(inputs) == 1 and type(inputs[0]) == list:
             # can pass in list
-            [self.nonstdin.put(n) for n in inputs[0] if type(n) == int]
+            [self.nonstdin.put(int(n)) for n in inputs[0]]
         else:
             # or a lot of nums
-            [self.nonstdin.put(n) for n in inputs if type(n) == int]
+            [self.nonstdin.put(int(n)) for n in inputs]
 
     def get(self):
         "Read outputs from machine. Blocking."
