@@ -20,7 +20,9 @@ class Memory(UserList):
                 return 0
         elif type(i) == slice and i.stop and i.stop >= length:
             the_rest = i.indices(i.stop - length)
-            return UserList.__getitem__(self, slice(i.start, length, i.step), *args, **kwargs) + [0 for _ in range(*the_rest)]
+            return UserList.__getitem__(
+                self, slice(i.start, length, i.step), *args, **kwargs
+            ) + [0 for _ in range(*the_rest)]
         else:
             # slice(1, 2, None)
             return UserList.__getitem__(self, i, *args, **kwargs)
@@ -31,14 +33,24 @@ class Memory(UserList):
             return
         return UserList.__setitem__(self, *args, **kwargs)
 
+    def __iter__(self):
+        i = 0
+        try:
+            while i < len(self):
+                v = self[i]
+                yield v
+                i += 1
+        except IndexError:
+            return
+
 
 class ChillError(Exception):
     pass
 
 
 class Intcode(Thread):
-    '''Creates a 2019 AoC Intcode machine, initialized with a program.
-    Program can be either a list of ints or a string.'''
+    """Creates a 2019 AoC Intcode machine, initialized with a program.
+    Program can be either a list of ints or a string."""
 
     @staticmethod
     def parse_program(program: str):
@@ -73,8 +85,18 @@ class Intcode(Thread):
             4: (lambda a: self._put_char(a), "write", 1, 0),
             5: (lambda a, b: self._modify_ip(b) if a != 0 else None, "jmp-t", 2, 0),
             6: (lambda a, b: self._modify_ip(b) if a == 0 else None, "jmp-f", 2, 0),
-            7: (lambda a, b, r: self._save_at(1, r) if a < b else self._save_at(0, r), "lt", 3, 1),
-            8: (lambda a, b, r: self._save_at(1, r) if a == b else self._save_at(0, r), "eq", 3, 1),
+            7: (
+                lambda a, b, r: self._save_at(1, r) if a < b else self._save_at(0, r),
+                "lt",
+                3,
+                1,
+            ),
+            8: (
+                lambda a, b, r: self._save_at(1, r) if a == b else self._save_at(0, r),
+                "eq",
+                3,
+                1,
+            ),
             9: (lambda a: self._modify_rb(a), "rb-off", 1, 0),
             99: (lambda: self._end(), "eof", 0, 0),
         }
@@ -96,18 +118,18 @@ class Intcode(Thread):
         "Pipe in inputs into the machine."
         if len(inputs) == 1 and type(inputs[0]) == list:
             # can pass in list
-            [self.nonstdin.put(int(n)) for n in inputs[0]]
+            [self.nonstdin.put(n) for n in inputs[0] if type(n) == int]
         else:
             # or a lot of nums
-            [self.nonstdin.put(int(n)) for n in inputs]
+            [self.nonstdin.put(n) for n in inputs if type(n) == int]
 
     def get(self):
         "Read outputs from machine. Blocking."
         return self.nonstdout.get()
 
     def wait_for_result(self):
-        '''Function returns when the machine stops.
-        Returns what's gathered in the output pipe.'''
+        """Function returns when the machine stops.
+        Returns what's gathered in the output pipe."""
         self._done.join()
 
         result = []
@@ -140,11 +162,11 @@ class Intcode(Thread):
         return op_code, params
 
     def _put_char(self, ch):
-        "Writes thingy on \"stdout\""
+        'Writes thingy on "stdout"'
         self.nonstdout.put(ch)
 
     def _get_char(self):
-        "Read thingy from \"stdin\". Blocking."
+        'Read thingy from "stdin". Blocking.'
         return self.nonstdin.get()
 
     def _save_at(self, val, r):
@@ -168,8 +190,8 @@ class Intcode(Thread):
         elif param == 2:
             # relative mode
             if ptr:
-                return self.rb+val
-            return self._read_at(self.rb+val)
+                return self.rb + val
+            return self._read_at(self.rb + val)
         else:
             raise Exception("Unknown parameter mode.")
 
@@ -192,10 +214,9 @@ class Intcode(Thread):
         try:
             while self.running:
                 op_code, params = self._op_at_ip()
-                op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(
-                    op_code)
-                mem_slice = self.memory[self.ip+1:self.ip+op_argc+1]
-                ptrs_start = op_argc-op_ptrs
+                op_fun, op_name, op_argc, op_ptrs = self._get_op_with_code(op_code)
+                mem_slice = self.memory[self.ip + 1 : self.ip + op_argc + 1]
+                ptrs_start = op_argc - op_ptrs
                 arguments = mem_slice[:ptrs_start]
                 pointers = mem_slice[ptrs_start:]
                 args_deref = self._deref(arguments, params)
@@ -228,62 +249,34 @@ class _test_intcode(unittest.TestCase):
         machine = Intcode(input_prog)
         machine.put(input_data)
         result = machine.wait_for_result()
-        self.assertSequenceEqual(
-            result, expected, f"Possible error: {machine.status}")
+        self.assertSequenceEqual(result, expected, f"Possible error: {machine.status}")
 
     def test_1(self):
-        self.prog_test(
-            "99",
-            [], []
-        )
+        self.prog_test("99", [], [])
 
     def test_2(self):
-        self.prog_test(
-            "3,9,8,9,10,9,4,9,99,-1,8",
-            [1], [8]
-        )  # eq8
+        self.prog_test("3,9,8,9,10,9,4,9,99,-1,8", [1], [8])  # eq8
 
     def test_3(self):
-        self.prog_test(
-            "3,9,7,9,10,9,4,9,99,-1,8",
-            [1], [7]
-        )  # lt8
+        self.prog_test("3,9,7,9,10,9,4,9,99,-1,8", [1], [7])  # lt8
 
     def test_4(self):
-        self.prog_test(
-            "3,3,1108,-1,8,3,4,3,99",
-            [1], [8]
-        )  # eq8
+        self.prog_test("3,3,1108,-1,8,3,4,3,99", [1], [8])  # eq8
 
     def test_5(self):
-        self.prog_test(
-            "3,3,1107,-1,8,3,4,3,99",
-            [1], [7]
-        )  # lt8
+        self.prog_test("3,3,1107,-1,8,3,4,3,99", [1], [7])  # lt8
 
     def test_6(self):
-        self.prog_test(
-            "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9",
-            [1], [1]
-        )
+        self.prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [1], [1])
 
     def test_7(self):
-        self.prog_test(
-            "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9",
-            [0], [0]
-        )
+        self.prog_test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", [0], [0])
 
     def test_8(self):
-        self.prog_test(
-            "3,3,1105,-1,9,1101,0,0,12,4,12,99,1",
-            [1], [1]
-        )
+        self.prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [1], [1])
 
     def test_9(self):
-        self.prog_test(
-            "3,3,1105,-1,9,1101,0,0,12,4,12,99,1",
-            [0], [0]
-        )
+        self.prog_test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", [0], [0])
 
     def test_10(self):
         test_data = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
@@ -300,6 +293,7 @@ class _test_intcode(unittest.TestCase):
 class _test_memory(unittest.TestCase):
     def setUp(self):
         self.test_mem = Memory([1, 2, 3])
+        self.test_mem_short = Memory([1])
 
     def test_reads(self):
         self.assertEqual(self.test_mem[2], 3)
@@ -308,9 +302,16 @@ class _test_memory(unittest.TestCase):
         self.assertSequenceEqual(self.test_mem[0:2], [1, 2])
 
     def test_writes(self):
-        self.test_mem[2**64] = 42
+        self.test_mem[2 ** 64] = 42
         self.assertEqual(len(self.test_mem), 3)  # sucks but yeah
-        self.assertEqual(self.test_mem[2**64], 42)
+        self.assertEqual(self.test_mem[2 ** 64], 42)
+
+    def test_iterating_zip(self):
+        times_called = 0
+        for m, i in zip(self.test_mem_short, range(3)):
+            times_called += 1
+
+        self.assertEqual(times_called, 1)
 
 
 def _run_test_class(test_case):
@@ -327,6 +328,6 @@ def _run_test_class(test_case):
         return False
 
 
-def test_module():
+def test_intcode():
     _run_test_class(_test_intcode)
     _run_test_class(_test_memory)
