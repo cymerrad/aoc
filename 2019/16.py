@@ -2,6 +2,7 @@ import numpy as np
 from itertools import cycle, repeat
 from cmath import exp, pi
 
+
 def parse_data(data: str):
     return np.array([int(x) for x in data])
 
@@ -116,6 +117,7 @@ def true_fft(signal: list, length: int):
     return [even[k] + T[k] for k in range(N//2)] + \
            [even[k] - T[k] for k in range(N//2)]
 
+
 def shitty_round(z: complex):
     ang = np.angle(z, deg=True)
     if ang <= 90:
@@ -127,6 +129,7 @@ def shitty_round(z: complex):
     else:
         return -1j
 
+
 def shitty_fft(signal: list):
     N = len(signal)
     if N <= 1:
@@ -137,19 +140,31 @@ def shitty_fft(signal: list):
     return [even[k] + T[k] for k in range(N//2)] + \
            [even[k] - T[k] for k in range(N//2)]
 
+def iterate_over_and_over(signal: input):
+    view=np.flip(signal, 0)
+    np.cumsum(view, 0, out=view)
+    np.abs(signal, out=signal)
+    signal %= 10
 
 def part2():
-    # signal_part = parse_data(actual_data)
-    # signal_rep = 10000
-    # signal = repeat(signal_part)
-    # signal_length = signal_rep * len(signal_part)
+    actual_len = len(actual_data)
+    offset = int(actual_data[:7]) # 5973857
+    signal_len = actual_len * 10000 # 6500000
+    offset_mod = offset % actual_len
+    # signal = parse_data(actual_data)
+    faux_signal = parse_data(actual_data)
+    a_lot_left = signal_len - (offset + (actual_len - offset_mod))
+    actual_signal = "".join((str(x) for x in faux_signal[offset_mod:])) + "".join((str(x) for _,x in zip(range(a_lot_left), cycle(faux_signal))))
+    assert len(actual_signal) == (signal_len - offset)
+    actual_signal_for_real_this_time = parse_data(actual_signal)
 
-    # fft_cycles = 100
 
-    # signal_processed = task_fft_memory_friendly(signal, signal_length)
-    # return signal_processed
-    signal = parse_data(test_data[0][0])
-    return shitty_fft(signal)
+    for i in range(100):
+        iterate_over_and_over(actual_signal_for_real_this_time)
+
+    print(actual_signal_for_real_this_time[:8])
+
+    return actual_signal_for_real_this_time
 
 
 with open("input16") as fr:
@@ -163,4 +178,4 @@ test_data = [('12345678',
 
 do_tests()
 
-part2()
+# part2()
