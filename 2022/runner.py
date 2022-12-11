@@ -4,7 +4,9 @@ import shutil
 import pathlib
 import importlib
 import yaml
+import subprocess
 from pprint import pprint
+from termcolor import colored
 
 
 @click.group()
@@ -24,22 +26,36 @@ def cli(ctx, debug):
 @click.pass_context
 @click.argument("module", type=click.Path(exists=False))
 def new(ctx, module):
-    pprint(ctx.obj)
+    # pprint(ctx.obj)
 
-    shutil.copytree(ctx.obj["ROOT"] / "0", ctx.obj["ROOT"] / module)
+    src = ctx.obj["ROOT"] / "0"
+    dest: pathlib.Path = ctx.obj["ROOT"] / module
+    shutil.copytree(src, dest)
+
+    for file in dest.iterdir():
+        subprocess.run(["code", "-r", file])
+
 
 
 @cli.command()
 @click.pass_context
 @click.argument("module", type=click.Path(exists=True))
-def run(ctx, module):
+def solve(ctx, module):
     mod = importlib.import_module(module)
     input_file = ctx.obj["ROOT"] / module / "input.yaml"
     (input_raw,) = get_input(input_file)
     data = mod.parse(input_raw)
-    result = mod.solve(data)
 
-    print(f"Result: {result}")
+    result_1 = mod.solve(data)
+
+    print(colored("Results", "yellow"))
+    print(f"First:\t{result_1}")
+
+    try:
+        result_2 = mod.solve_2(data)
+        print(f"Second:\t{result_2}")
+    except NotImplementedError:
+        pass
 
 
 @cli.command()
@@ -48,14 +64,43 @@ def run(ctx, module):
 def test(ctx, module):
     mod = importlib.import_module(module)
     input_file = ctx.obj["ROOT"] / module / "test.yaml"
-    (input_raw, expected) = get_input(input_file)
-    data = mod.parse(input_raw)
-    result = mod.solve(data)
+    input_tuple = get_input(input_file)
 
-    if result == expected:
-        print(f"{result} is correct")
+    if ctx.obj["DEBUG"]:
+        print("\nRaw input:")
+        pprint(input_tuple)
+
+        print("\nParsed data:")
+        pprint(data)
+
+    expected_1, expected_2 = None, None
+    (input_data, expected_1, expected_2) = input_tuple
+
+    data = mod.parse(input_data)
+
+    result_1 = mod.solve(data)
+    if result_1 == expected_1:
+        print(colored("First part correct", "green"))
+        # print(f"{result_1} is correct")
     else:
-        print(f"Expected: {expected}\nGot: {result} instead.")
+        print(colored("First part wrong", "red"))
+        print(f"Expected: {expected_1}\nGot: {result_1} instead.")
+
+    if expected_2 is None:
+        return
+
+    result_2 = mod.solve_2(data)
+    if result_2 == expected_2:
+        print(colored("Second part correct", "green"))
+        # print(f"{result_2} is correct")
+    else:
+        print(colored("Second part wrong", "red"))
+        print(f"Expected: {expected_2}\nGot: {result_2} instead.")
+
+
+# def run(ctx):
+#     module = importlib.import_module(ctx.obj["MODULE"])
+#     input_raw = ctx.obj["INPUT_RAW"]
 
 
 def get_input(file):
@@ -65,8 +110,11 @@ def get_input(file):
         if len(res) == 1:
             return (res[0],)
 
-        [expected_result, data] = res
-        return (data, expected_result)
+        if len(res) == 2:
+            return (res[1], res[0], None)
+
+        if len(res) == 3:
+            return (res[2], res[0], res[1])
 
 
 if __name__ == "__main__":

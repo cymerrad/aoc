@@ -1,10 +1,13 @@
 from typing import *
 
-Data = TypeVar("Data")
 
-def parse(input: str) -> Data:
+def parse(input: str):
     raise NotImplementedError
 
 
-def solve(data: Data) -> int:
+def solve(data) -> int:
+    raise NotImplementedError
+
+
+def solve_2(data) -> int:
     raise NotImplementedError
