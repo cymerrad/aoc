@@ -66,6 +66,11 @@ def test(ctx, module):
     input_file = ctx.obj["ROOT"] / module / "test.yaml"
     input_tuple = get_input(input_file)
 
+    expected_1, expected_2 = None, None
+    (input_data, expected_1, expected_2) = input_tuple
+
+    data = mod.parse(input_data)
+
     if ctx.obj["DEBUG"]:
         print("\nRaw input:")
         pprint(input_tuple)
@@ -73,12 +78,7 @@ def test(ctx, module):
         print("\nParsed data:")
         pprint(data)
 
-    expected_1, expected_2 = None, None
-    (input_data, expected_1, expected_2) = input_tuple
-
-    data = mod.parse(input_data)
-
-    result_1 = mod.solve(data)
+    result_1 = mod.solve(data, debug=ctx.obj["DEBUG"])
     if result_1 == expected_1:
         print(colored("First part correct", "green"))
         # print(f"{result_1} is correct")
@@ -89,7 +89,7 @@ def test(ctx, module):
     if expected_2 is None:
         return
 
-    result_2 = mod.solve_2(data)
+    result_2 = mod.solve_2(data, debug=ctx.obj["DEBUG"])
     if result_2 == expected_2:
         print(colored("Second part correct", "green"))
         # print(f"{result_2} is correct")
