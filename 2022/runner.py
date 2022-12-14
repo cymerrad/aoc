@@ -36,7 +36,6 @@ def new(ctx, module):
         subprocess.run(["code", "-r", file])
 
 
-
 @cli.command()
 @click.pass_context
 @click.argument("module", type=click.Path(exists=True))
@@ -46,13 +45,13 @@ def solve(ctx, module):
     (input_raw,) = get_input(input_file)
     data = mod.parse(input_raw)
 
-    result_1 = mod.solve(data)
+    result_1 = mod.solve(data, debug=ctx.obj["DEBUG"])
 
     print(colored("Results", "yellow"))
     print(f"First:\t{result_1}")
 
     try:
-        result_2 = mod.solve_2(data)
+        result_2 = mod.solve_2(data, debug=ctx.obj["DEBUG"])
         print(f"Second:\t{result_2}")
     except NotImplementedError:
         pass
@@ -69,7 +68,7 @@ def test(ctx, module):
     expected_1, expected_2 = None, None
     (input_data, expected_1, expected_2) = input_tuple
 
-    data = mod.parse(input_data)
+    data = mod.parse(input_data, debug=ctx.obj["DEBUG"])
 
     if ctx.obj["DEBUG"]:
         print("\nRaw input:")
