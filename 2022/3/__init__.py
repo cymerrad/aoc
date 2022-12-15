@@ -13,7 +13,7 @@ def calc_score(el):
         return ord(el) - ord("A") + 27
 
 
-def solve(data, debug=False, *args, **kwargs) -> int:
+def solve_1(data, debug=False, *args, **kwargs) -> int:
     score = 0
     for backpack in data:
         l, r = (backpack[: len(backpack) // 2], backpack[len(backpack) // 2 :])

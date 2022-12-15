@@ -3,10 +3,12 @@ import click
 import shutil
 import pathlib
 import importlib
+import importlib.resources
 import yaml
 import subprocess
 from pprint import pprint
 from termcolor import colored
+from typing import *
 
 
 @click.group()
@@ -39,13 +41,51 @@ def new(ctx, module):
 @cli.command()
 @click.pass_context
 @click.argument("module", type=click.Path(exists=True))
-def solve(ctx, module):
+@click.option("--test", default=False)
+def run(ctx, module, test):
+    debug = ctx.obj["DEBUG"]
+    mod = get_module(module)
+
+    parsed_test_data = mod.parse(mod.TEST_INPUT, debug=debug)
+
+    if debug:
+        print("TEST_INPUT\n", mod.TEST_INPUT)
+        print("\nPARSED\n", parsed_test_data)
+
+    success_1 = mod.solve_1(parsed_test_data, debug=debug, test=True)
+    if not success_1:
+        print(colored("First test failed", "red"))
+        return
+    print(colored("First test correct", "green"))
+
+    parsed = mod.parse(mod.INPUT, debug=debug)
+
+    if debug:
+        print(parsed)
+
+    result_1 = mod.solve_1(parsed, debug=debug)
+    print(f"First:\t" + colored(result_1, "yellow"))
+
+    success_2 = mod.solve_2(parsed_test_data, debug=debug, test=True)
+    if not success_2:
+        print(colored("Second test failed", "red"))
+        return
+    print(colored("Second test correct", "green"))
+
+    result_2 = mod.solve_2(parsed, debug=debug)
+    print(f"Second:\t" + colored(result_2, "yellow"))
+
+
+@cli.command()
+@click.pass_context
+@click.argument("module", type=click.Path(exists=True))
+def solve_1(ctx, module):
     mod = importlib.import_module(module)
     input_file = ctx.obj["ROOT"] / module / "input.yaml"
     (input_raw,) = get_input(input_file)
     data = mod.parse(input_raw)
 
-    result_1 = mod.solve(data, debug=ctx.obj["DEBUG"])
+    result_1 = mod.solve_1(data, debug=ctx.obj["DEBUG"])
 
     print(colored("Results", "yellow"))
     print(f"First:\t{result_1}")
@@ -77,7 +117,7 @@ def test(ctx, module):
         print("\nParsed data:")
         pprint(data)
 
-    result_1 = mod.solve(data, debug=ctx.obj["DEBUG"])
+    result_1 = mod.solve_1(data, debug=ctx.obj["DEBUG"])
     if result_1 == expected_1:
         print(colored("First part correct", "green"))
         # print(f"{result_1} is correct")
@@ -97,11 +137,6 @@ def test(ctx, module):
         print(f"Expected: {expected_2}\nGot: {result_2} instead.")
 
 
-# def run(ctx):
-#     module = importlib.import_module(ctx.obj["MODULE"])
-#     input_raw = ctx.obj["INPUT_RAW"]
-
-
 def get_input(file):
     with open(file) as fr:
         res = list(yaml.safe_load_all(fr.read()))
@@ -114,6 +149,32 @@ def get_input(file):
 
         if len(res) == 3:
             return (res[2], res[0], res[1])
+
+
+def get_module(module):
+    mod = importlib.import_module(module)
+
+    resources = list(
+        resource
+        for resource in importlib.resources.files(module).iterdir()
+        if resource.is_file()
+    )
+
+    input_file = next(r.read_text() for r in resources if r.name.startswith("input"))
+    # test_file = next((r.read_text() for r in resources if r.name.startswith("test")), None)
+
+    # class Mod:
+    #     parse: Callable = mod.parse
+    #     solve_1: Callable = mod.solve_1
+    #     solve_2: Callable = mod.solve_2
+    #     INPUT: str = input_file
+    #     TEST_INPUT: str = mod.TEST_INPUT
+    #     TEST_RESULT_1: str = mod.TEST_RESULT_1
+    #     TEST_RESULT_2: str = mod.TEST_RESULT_2
+
+    setattr(mod, "INPUT", input_file)
+
+    return mod
 
 
 if __name__ == "__main__":

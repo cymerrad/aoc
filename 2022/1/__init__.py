@@ -6,7 +6,7 @@ def parse(input: str):
     return [[int(y) for y in chunk.split()] for chunk in chunks]
 
 
-def solve(data) -> int:
+def solve_1(data) -> int:
     return max([sum(chunks) for chunks in data])
 
 def solve_2(data) -> int:

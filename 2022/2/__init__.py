@@ -34,7 +34,7 @@ def parse(input: str):
     return list(grouper(input.strip().split(), 2))
 
 
-def solve(data, debug=False) -> int:
+def solve_1(data, debug=False) -> int:
     WEIGHTS = {
         "X": 1,
         "Y": 2,

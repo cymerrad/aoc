@@ -62,7 +62,7 @@ def overlapping_segments(r1, r2):
     return r1[1] - r2[0] + 1
 
 
-def solve(data, debug=False, *args, **kwargs) -> int:
+def solve_1(data, debug=False, *args, **kwargs) -> int:
     if debug:
         print(data)
 
