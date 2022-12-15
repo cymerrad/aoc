@@ -13,6 +13,10 @@ def solve_2(data, *args, debug=False, test=False, **kwargs) -> int:
     raise NotImplementedError
 
 
+def test(*args, debug=False, test=False, **kwargs):
+    raise NotImplementedError
+
+
 TEST_INPUT = """
 TEST_INPUT
 """

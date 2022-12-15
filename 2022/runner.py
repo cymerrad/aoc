@@ -41,10 +41,17 @@ def new(ctx, module):
 @cli.command()
 @click.pass_context
 @click.argument("module", type=click.Path(exists=True))
-@click.option("--test", default=False)
+@click.option("-t", "--test", default=False, is_flag=True)
 def run(ctx, module, test):
     debug = ctx.obj["DEBUG"]
     mod = get_module(module)
+
+    if test:
+        print(colored("Running test suite", "yellow"))
+        if mod.test(debug=debug):
+            print(colored("Success", "green"))
+        else:
+            print(colored("Fail", "red"))
 
     parsed_test_data = mod.parse(mod.TEST_INPUT, debug=debug)
 
