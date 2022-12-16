@@ -42,7 +42,8 @@ def new(ctx, module):
 @click.pass_context
 @click.argument("module", type=click.Path(exists=True))
 @click.option("-t", "--test", default=False, is_flag=True)
-def run(ctx, module, test):
+@click.option("-n", "--no-test", default=False, is_flag=True)
+def run(ctx, module, test, no_test):
     debug = ctx.obj["DEBUG"]
     mod = get_module(module)
 
@@ -59,8 +60,9 @@ def run(ctx, module, test):
         print("TEST_INPUT\n", mod.TEST_INPUT)
         print("\nPARSED\n", parsed_test_data)
 
-    success_1 = mod.solve_1(parsed_test_data, debug=debug, test=True)
-    if not success_1:
+    test_result_1 = mod.solve_1(parsed_test_data, debug=debug, test=True)
+    success_1 = test_result_1 == mod.TEST_RESULT_1
+    if not success_1 and not no_test:
         print(colored("First test failed", "red"))
         return
     print(colored("First test correct", "green"))
@@ -73,8 +75,9 @@ def run(ctx, module, test):
     result_1 = mod.solve_1(parsed, debug=debug)
     print(f"First:\t" + colored(result_1, "yellow"))
 
-    success_2 = mod.solve_2(parsed_test_data, debug=debug, test=True)
-    if not success_2:
+    test_result_2 = mod.solve_2(parsed_test_data, debug=debug, test=True)
+    success_2 = test_result_2 == mod.TEST_RESULT_2
+    if not success_2 and not no_test:
         print(colored("Second test failed", "red"))
         return
     print(colored("Second test correct", "green"))
