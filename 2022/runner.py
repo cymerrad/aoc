@@ -78,7 +78,8 @@ def run(ctx, module, test, no_test, hash):
         print(parsed)
 
     result_1 = mod.solve_1(parsed, debug=debug)
-    print(f"First:\t" + colored(result_1, "yellow"))
+    print(f"First:\t")
+    print(colored(result_1, "yellow"))
 
     test_result_2 = mod.solve_2(parsed_test_data, debug=debug, test=True)
     success_2 = test_result_2 == mod.TEST_RESULT_2
@@ -91,7 +92,8 @@ def run(ctx, module, test, no_test, hash):
     print(colored("Second test correct", "green"))
 
     result_2 = mod.solve_2(parsed, debug=debug)
-    print(f"Second:\t" + colored(result_2, "yellow"))
+    print(f"Second:\t")
+    print(colored(result_2, "yellow"))
 
 
 @cli.command()
