@@ -302,3 +302,14 @@ def nth_combination(iterable, r, index):
             c, n = c*(n-r)//n, n-1
         result.append(pool[-1-n])
     return tuple(result)
+
+
+def fac(n):
+    step = lambda x: 1 + (x << 2) - ((x >> 1) << 1)
+    maxq = int(math.floor(math.sqrt(n)))
+    d = 1
+    q = 2 if n % 2 == 0 else 3
+    while q <= maxq and n % q != 0:
+        q = step(d)
+        d += 1
+    return [q] + fac(n // q) if q <= maxq else [n]
