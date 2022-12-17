@@ -1,4 +1,5 @@
 #!python3
+from hashlib import md5
 import click
 import shutil
 import pathlib
@@ -43,7 +44,8 @@ def new(ctx, module):
 @click.argument("module", type=click.Path(exists=True))
 @click.option("-t", "--test", default=False, is_flag=True)
 @click.option("-n", "--no-test", default=False, is_flag=True)
-def run(ctx, module, test, no_test):
+@click.option("-h", "--hash", default=False, is_flag=True)
+def run(ctx, module, test, no_test, hash):
     debug = ctx.obj["DEBUG"]
     mod = get_module(module)
 
@@ -64,6 +66,9 @@ def run(ctx, module, test, no_test):
     success_1 = test_result_1 == mod.TEST_RESULT_1
     if not success_1 and not no_test:
         print(colored("First test failed", "red"))
+        if hash:
+            print(md5(test_result_1.encode("utf8")).digest(), test_result_1)
+            print(md5(mod.TEST_RESULT_1.encode("utf8")).digest(), mod.TEST_RESULT_1)
         return
     print(colored("First test correct", "green"))
 
@@ -79,6 +84,9 @@ def run(ctx, module, test, no_test):
     success_2 = test_result_2 == mod.TEST_RESULT_2
     if not success_2 and not no_test:
         print(colored("Second test failed", "red"))
+        if hash:
+            print(md5(test_result_1.encode("utf8")).digest(), test_result_1)
+            print(md5(mod.TEST_RESULT_1.encode("utf8")).digest(), mod.TEST_RESULT_1)
         return
     print(colored("Second test correct", "green"))
 

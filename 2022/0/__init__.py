@@ -5,11 +5,11 @@ def parse(input: str, *args, **kwargs):
     raise NotImplementedError
 
 
-def solve_1(data, *args, debug=False, test=False, **kwargs) -> int:
+def solve_1(data, *args, debug=False, test=False, **kwargs):
     raise NotImplementedError
 
 
-def solve_2(data, *args, debug=False, test=False, **kwargs) -> int:
+def solve_2(data, *args, debug=False, test=False, **kwargs):
     raise NotImplementedError
 
 
